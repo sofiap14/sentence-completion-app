@@ -1,13 +1,25 @@
-import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 
 export default function DailyCompletion() {
+  const { data: session, status } = useSession();
   const [responses, setResponses] = useState('');
   const [message, setMessage] = useState('');
 
+  // Redirect unauthenticated users to the sign-in page
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      window.location.href = '/auth/signin';
+    }
+  }, [status]);
+
+  if (status === 'loading') {
+    return <p>Loading...</p>;
+  }
+
   const handleSubmit = async () => {
     try {
-      // Replace with the actual user ID, usually retrieved from the session
-      const userId = 1; 
+      if (!session) return;
 
       const res = await fetch('/api/responses', {
         method: 'POST',
@@ -15,19 +27,19 @@ export default function DailyCompletion() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId,
+          userId: session.userId,
           content: responses,
         }),
       });
 
       if (res.ok) {
-        const data = await res.json();
         setMessage('Response saved successfully!');
         setResponses('');
       } else {
         setMessage('Failed to save response. Please try again.');
       }
     } catch (error) {
+      console.error('Error saving response:', error);
       setMessage('An error occurred. Please try again.');
     }
   };

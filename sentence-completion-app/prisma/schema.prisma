@@ -7,18 +7,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Response {
-  id       Int      @id @default(autoincrement())
-  content  String
-  date     DateTime @default(now())
-  userId   Int
-  user     User     @relation(fields: [userId], references: [id])
-}
-
 model User {
   id        Int        @id @default(autoincrement())
   email     String     @unique
   name      String?
   password  String
   responses Response[]
+}
+
+model Response {
+  id       Int      @id @default(autoincrement())
+  content  String
+  date     DateTime @default(now())
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id])
 }

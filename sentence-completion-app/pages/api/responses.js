@@ -1,17 +1,14 @@
 import prisma from '../../prisma/lib/prisma';
 
-// API handler to manage user responses
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { userId, content } = req.body;
 
-    // Validate incoming data
     if (!userId || !content) {
       return res.status(400).json({ error: 'User ID and content are required' });
     }
 
     try {
-      // Create a new response entry in the database
       const response = await prisma.response.create({
         data: {
           userId,
