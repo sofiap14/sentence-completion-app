@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState(''); // Changed from 'name' to 'username'
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
 
@@ -15,13 +15,14 @@ export default function SignUp() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, name, password }),
+        body: JSON.stringify({ email, username, password }), // Changed 'name' to 'username'
       });
 
       if (res.ok) {
         setMessage('User registered successfully! Please log in.');
       } else {
-        setMessage('Failed to register. Please try again.');
+        const errorData = await res.json();
+        setMessage(errorData.error || 'Failed to register. Please try again.');
       }
     } catch (error) {
       console.error('Error during sign-up:', error);
@@ -39,13 +40,15 @@ export default function SignUp() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email"
           className="border p-2 mb-4 block w-full"
+          required
         />
         <input
           type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
+          value={username} // Changed from 'name' to 'username'
+          onChange={(e) => setUsername(e.target.value)} // Changed 'setName' to 'setUsername'
+          placeholder="Username" // Changed placeholder from 'Name' to 'Username'
           className="border p-2 mb-4 block w-full"
+          required
         />
         <input
           type="password"
@@ -53,6 +56,7 @@ export default function SignUp() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
           className="border p-2 mb-4 block w-full"
+          required
         />
         <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
           Sign Up

@@ -8,17 +8,29 @@ generator client {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  name      String?
-  password  String
-  responses Response[]
+  id          Int        @id @default(autoincrement())
+  email       String     @unique
+  password    String
+  createdAt   DateTime   @default(now())
+  currentWeek Int        @default(1) // Add this line
+  responses   Response[] @relation("UserResponses")
+}
+
+model SentenceStem {
+  id          Int        @id @default(autoincrement())
+  text        String
+  weekNumber  Int        // Represents the week number
+  order       Int        // Represents the order of the sentence stem (1 to 4)
+  responses   Response[] @relation("StemResponses")
 }
 
 model Response {
-  id       Int      @id @default(autoincrement())
-  content  String
-  date     DateTime @default(now())
-  userId   Int
-  user     User     @relation(fields: [userId], references: [id])
+  id             Int          @id @default(autoincrement())
+  responseText   String
+  createdAt      DateTime     @default(now())
+  userId         Int
+  sentenceStemId Int
+
+  user           User         @relation("UserResponses", fields: [userId], references: [id])
+  sentenceStem   SentenceStem @relation("StemResponses", fields: [sentenceStemId], references: [id])
 }
