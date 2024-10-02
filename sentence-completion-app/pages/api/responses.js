@@ -1,13 +1,20 @@
+// /pages/api/responses.js
+
 import prisma from '../../prisma/lib/prisma';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 
 export default async function handler(req, res) {
-  // Ensure the user is authenticated
-  const session = await getSession({ req });
+  // Retrieve the session
+  const session = await getServerSession(req, res, authOptions);
+  console.log('Session in /api/responses:', session);
+
+  // If no session, return unauthorized error
   if (!session) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Extract user ID from session
   const userId = session.user.id;
 
   if (req.method === 'POST') {

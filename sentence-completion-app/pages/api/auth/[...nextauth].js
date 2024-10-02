@@ -1,11 +1,11 @@
-// pages/api/auth/[...nextauth].js
+// /pages/api/auth/[...nextauth].js
 
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import prisma from '../../../prisma/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-export default NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -14,23 +14,29 @@ export default NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        // Find the user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
+        // If user exists and password matches
         if (user && (await bcrypt.compare(credentials.password, user.password))) {
+          // Return user object (id, username, email)
           return {
             id: user.id,
             username: user.username,
             email: user.email,
           };
         }
+
+        // If authentication fails, throw an error
         throw new Error('Invalid email or password');
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // If user object is present, store user data in token
       if (user) {
         token.id = user.id;
         token.username = user.username;
@@ -38,6 +44,7 @@ export default NextAuth({
       return token;
     },
     async session({ session, token }) {
+      // If token is present, store user data in session
       if (token) {
         session.user.id = token.id;
         session.user.username = token.username;
@@ -49,4 +56,6 @@ export default NextAuth({
   session: {
     strategy: 'jwt',
   },
-});
+};
+
+export default NextAuth(authOptions);
