@@ -16,7 +16,7 @@ export default function SignIn() {
     });
 
     if (result.ok) {
-      window.location.href = '/';
+      window.location.href = '/daily';
     } else {
       setMessage('Invalid email or password. Please try again.');
     }
