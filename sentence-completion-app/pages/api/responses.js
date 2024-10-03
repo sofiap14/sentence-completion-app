@@ -4,17 +4,16 @@ import prisma from '../../prisma/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 
+const MAX_RESPONSES_PER_STEM = 10;
+
 export default async function handler(req, res) {
-  // Retrieve the session
   const session = await getServerSession(req, res, authOptions);
   console.log('Session in /api/responses:', session);
 
-  // If no session, return unauthorized error
   if (!session) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Extract user ID from session
   const userId = session.user.id;
 
   if (req.method === 'POST') {
@@ -35,6 +34,18 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid sentence stem ID.' });
       }
 
+      // Check the current number of responses for this stem by the user
+      const currentResponseCount = await prisma.response.count({
+        where: {
+          userId: userId,
+          sentenceStemId: sentenceStemId,
+        },
+      });
+
+      if (currentResponseCount >= MAX_RESPONSES_PER_STEM) {
+        return res.status(400).json({ error: `You have reached the maximum of ${MAX_RESPONSES_PER_STEM} responses for this stem.` });
+      }
+
       // Create the response
       await prisma.response.create({
         data: {
@@ -43,33 +54,6 @@ export default async function handler(req, res) {
           sentenceStemId,
         },
       });
-
-      // Check if the user has completed all stems for the week
-      const totalStemsForWeek = await prisma.sentenceStem.count({
-        where: { weekNumber: stem.weekNumber },
-      });
-
-      const userResponsesForWeek = await prisma.response.count({
-        where: {
-          userId: userId,
-          sentenceStem: {
-            weekNumber: stem.weekNumber,
-          },
-        },
-      });
-
-      if (userResponsesForWeek >= totalStemsForWeek * 5) {
-        // User has completed all stems for the week (assuming 5 days)
-        // Increment user's currentWeek
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            currentWeek: {
-              increment: 1,
-            },
-          },
-        });
-      }
 
       res.status(201).json({ message: 'Response saved successfully.' });
     } catch (error) {
