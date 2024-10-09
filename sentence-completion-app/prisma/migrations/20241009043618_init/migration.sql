@@ -3,10 +3,18 @@ CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "currentWeek" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Progress" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "currentWeek" INTEGER NOT NULL DEFAULT 1,
+    "submissions" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "Progress_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -32,6 +40,15 @@ CREATE TABLE "Response" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Progress_userId_key" ON "Progress"("userId");
+
+-- CreateIndex
+CREATE INDEX "Response_userId_sentenceStemId_createdAt_idx" ON "Response"("userId", "sentenceStemId", "createdAt");
+
+-- AddForeignKey
+ALTER TABLE "Progress" ADD CONSTRAINT "Progress_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Response" ADD CONSTRAINT "Response_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

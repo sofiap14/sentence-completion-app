@@ -1,61 +1,41 @@
-// /pages/api/auth/[...nextauth].js
-
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import prisma from '../../../lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-export const authOptions = {
+const prisma = new PrismaClient();
+
+export default NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'text', placeholder: 'you@example.com' },
-        password: { label: 'Password', type: 'password' },
-      },
       async authorize(credentials) {
         // Find the user by email
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
-        // If user exists and password matches
-        if (user && (await bcrypt.compare(credentials.password, user.password))) {
-          // Return user object (id, username, email)
-          return {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-          };
+        if (!user || !bcrypt.compareSync(credentials.password, user.password)) {
+          throw new Error('Invalid email or password');
         }
 
-        // If authentication fails, throw an error
-        throw new Error('Invalid email or password');
+        return user; // This user will be attached to the session
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // If user object is present, store user data in token
       if (user) {
-        token.id = user.id;
-        token.username = user.username;
+        token.id = user.id; // Store user ID in the JWT token
       }
       return token;
     },
     async session({ session, token }) {
-      // If token is present, store user data in session
       if (token) {
-        session.user.id = token.id;
-        session.user.username = token.username;
+        session.user.id = token.id; // Pass the user ID in the session
       }
       return session;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: 'jwt',
-  },
-};
-
-export default NextAuth(authOptions);
+});

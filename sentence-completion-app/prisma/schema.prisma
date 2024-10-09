@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 datasource db {
   provider = "postgresql" // or your chosen database provider
   url      = env("DATABASE_URL")
@@ -13,11 +11,16 @@ model User {
   id             Int         @id @default(autoincrement())
   email          String      @unique
   password       String
-  currentWeek    Int         @default(1)
-  weekStartDate  DateTime    @default(now())
-  weekCompleted  Boolean     @default(false)
+  progress       Progress[]  @relation("UserProgress") // Updated to handle progress separately
   responses      Response[]  @relation("UserResponses")
-  // Add other user fields as necessary
+}
+
+model Progress {
+  id             Int         @id @default(autoincrement())
+  userId         Int         @unique
+  currentWeek    Int         @default(1)  // The current week user is working on
+  submissions    Int         @default(0)  // Number of days submitted in the current week
+  user           User        @relation("UserProgress", fields: [userId], references: [id])
 }
 
 model SentenceStem {
@@ -26,7 +29,6 @@ model SentenceStem {
   weekNumber Int
   order      Int
   responses  Response[]  @relation("StemResponses")
-  // Add other stem fields as necessary
 }
 
 model Response {
