@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image';
 
 export default function Daily() {
   const { data: session, status } = useSession();
@@ -34,10 +33,10 @@ export default function Daily() {
     try {
       if (isWeekend) {
         const res = await axios.get('/api/getAllResponses');
-        setStems(res.data.stemsWithResponses);
+        setStems(res.data.stemsWithResponses || []);
       } else {
         const res = await axios.get('/api/stems');
-        setStems(res.data.stems);
+        setStems(res.data.stems || []);
       }
       setLoading(false);
     } catch (err) {
@@ -70,9 +69,12 @@ export default function Daily() {
 
       // Check if current stem has reached the limit
       const updatedStem = stems.find((stem) => stem.id === stemId);
-      if (updatedStem && updatedStem.responsesToday + 1 >= 10) {
-        // Move to next stem
-        setCurrentStemIndex((prevIndex) => prevIndex + 1);
+      if (updatedStem && (updatedStem.responsesToday || 0) + 1 >= 10) {
+        // Move to next stem if exists
+        setCurrentStemIndex((prevIndex) => {
+          const nextIndex = prevIndex + 1;
+          return nextIndex < stems.length ? nextIndex : prevIndex;
+        });
       }
     } catch (err) {
       console.error('Error submitting response:', err);
@@ -81,11 +83,6 @@ export default function Daily() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleResetDay = () => {
-    setCurrentStemIndex(0);
-    fetchStems();
   };
 
   if (status === 'loading' || loading) return <p className="text-center mt-8">Loading...</p>;
@@ -102,7 +99,7 @@ export default function Daily() {
               <h2 className="text-xl font-semibold mb-2">Stem {stem.order}: {stem.text}</h2>
               <div>
                 <h3 className="text-lg font-medium mb-2">Your Responses:</h3>
-                {stem.responsesWithDates.length > 0 ? (
+                {(stem.responsesWithDates || []).length > 0 ? (
                   <ul className="list-disc list-inside">
                     {stem.responsesWithDates.map((response) => (
                       <li key={response.id}>

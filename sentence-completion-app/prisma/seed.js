@@ -1,6 +1,6 @@
 // prisma/seed.js
 
-import prisma from '../prisma/lib/prisma.js';
+import prisma from '../lib/prisma.js';
 
 async function main() {
   const stems = [

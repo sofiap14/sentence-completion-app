@@ -1,12 +1,12 @@
 // /pages/api/getAllResponses.js
 
-import prisma from '../../prisma/lib/prisma';
+import prisma from '../../lib/prisma.js';// /pages/api/getAllResponses.js
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { getCurrentWeekNumber } from '../../lib/utils.js';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
-  console.log('Session in /api/getAllResponses:', session);
 
   if (!session) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch user's current week
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { currentWeek: true },
@@ -33,27 +32,54 @@ export default async function handler(req, res) {
 
     // Fetch stems for the current week along with all responses
     const stems = await prisma.sentenceStem.findMany({
-      where: { weekNumber: weekNumber },
+      where: { weekNumber },
       orderBy: { order: 'asc' },
       include: {
         responses: {
-          where: { userId: userId },
+          where: { userId },
           orderBy: { createdAt: 'asc' },
         },
       },
     });
 
-    // Format stems with all responses
-    const formattedStems = stems.map((stem) => ({
-      id: stem.id,
-      text: stem.text,
-      order: stem.order,
-      responsesWithDates: stem.responses.map((response) => ({
-        id: response.id,
-        responseText: response.responseText,
-        createdAt: response.createdAt,
-      })),
-    }));
+    // Group responses by day
+    const responsesByDay = {};
+
+    stems.forEach((stem) => {
+      stem.responses.forEach((response) => {
+        const date = new Date(response.createdAt);
+        const day = date.toLocaleDateString('en-US', { weekday: 'long' }); // e.g., 'Monday'
+        if (!responsesByDay[stem.id]) {
+          responsesByDay[stem.id] = {};
+        }
+        if (!responsesByDay[stem.id][day]) {
+          responsesByDay[stem.id][day] = [];
+        }
+        responsesByDay[stem.id][day].push({
+          id: response.id,
+          responseText: response.responseText,
+          createdAt: response.createdAt,
+        });
+      });
+    });
+
+    // Prepare final response structure
+    const formattedStems = stems.map((stem) => {
+      // Define all weekdays
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      const stemResponses = {};
+
+      daysOfWeek.forEach((day) => {
+        stemResponses[day] = responsesByDay[stem.id]?.[day] || [];
+      });
+
+      return {
+        id: stem.id,
+        text: stem.text,
+        order: stem.order,
+        responsesByDay: stemResponses,
+      };
+    });
 
     res.status(200).json({ stemsWithResponses: formattedStems, weekNumber });
   } catch (error) {

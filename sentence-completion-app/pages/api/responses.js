@@ -1,6 +1,6 @@
 // /pages/api/responses.js
 
-import prisma from '../../prisma/lib/prisma';
+import prisma from '../../lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 

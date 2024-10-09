@@ -1,5 +1,7 @@
+// prisma/schema.prisma
+
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or your chosen database provider
   url      = env("DATABASE_URL")
 }
 
@@ -8,20 +10,23 @@ generator client {
 }
 
 model User {
-  id          Int        @id @default(autoincrement())
-  email       String     @unique
-  password    String
-  createdAt   DateTime   @default(now())
-  currentWeek Int        @default(1) // Add this line
-  responses   Response[] @relation("UserResponses")
+  id             Int         @id @default(autoincrement())
+  email          String      @unique
+  password       String
+  currentWeek    Int         @default(1)
+  weekStartDate  DateTime    @default(now())
+  weekCompleted  Boolean     @default(false)
+  responses      Response[]  @relation("UserResponses")
+  // Add other user fields as necessary
 }
 
 model SentenceStem {
-  id          Int        @id @default(autoincrement())
-  text        String
-  weekNumber  Int        // Represents the week number
-  order       Int        // Represents the order of the sentence stem (1 to 4)
-  responses   Response[] @relation("StemResponses")
+  id         Int         @id @default(autoincrement())
+  text       String
+  weekNumber Int
+  order      Int
+  responses  Response[]  @relation("StemResponses")
+  // Add other stem fields as necessary
 }
 
 model Response {
@@ -33,4 +38,6 @@ model Response {
 
   user           User         @relation("UserResponses", fields: [userId], references: [id])
   sentenceStem   SentenceStem @relation("StemResponses", fields: [sentenceStemId], references: [id])
+
+  @@index([userId, sentenceStemId, createdAt])
 }

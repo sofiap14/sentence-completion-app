@@ -1,9 +1,9 @@
 // /pages/api/stems.js
 
-import prisma from '../../prisma/lib/prisma';
+import prisma from '../../lib/prisma.js';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
-import { getCurrentWeekNumber } from '../utils/getCurrentWeekNumber.js';
+import { getCurrentWeekNumber } from '../../lib/utils.js';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
