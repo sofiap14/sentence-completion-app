@@ -1,15 +1,14 @@
-import { getSession } from 'next-auth/react';
-import { PrismaClient } from '@prisma/client';
+// /pages/api/progress.js
 
-const prisma = new PrismaClient();
+import { getServerSession } from 'next-auth/next';
+import prisma from '../../../lib/prisma.js';
+import { authOptions } from '../auth/[...nextauth].js'; // Adjusted path
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
+  console.log('Session in /api/progress:', session);
 
-  // Log session for debugging purposes
-  console.log('Session:', session);
-
-  if (!session || !session.user?.id) {
+  if (!session || !session.user || !session.user.id) {
     return res.status(401).json({ error: 'Unauthorized or missing user ID' });
   }
 
@@ -17,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     // Find user's progress using their userId
-    const progress = await prisma.progress.findFirst({
+    const progress = await prisma.progress.findUnique({
       where: {
         userId: userId,
       },
