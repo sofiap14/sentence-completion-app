@@ -1,111 +1,178 @@
+
 // pages/index.js
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Home() {
-  return (
-    <div className="container w-full h-full mx-auto p-4 text-white bg-gradient-to-b from-[#2F0E1F] to-[#643045]">
-      {/* Header */}
-      <div className="flex flex-col items-center mt-4 mb-4">
-        <h1 className="text-5xl font-serif">mindstems</h1>
-      </div>
-      
-      {/* Description and Image */}
-      <div className="flex flex-col md:flex-row items-center mt-24 pl-4 lg:pl-36 space-y-8 md:space-y-0 md:space-x-8">
-        {/* Description Text */}
-        <div className="flex-1">
-          <p className='hidden lg:block text-center lg:text-left text-2xl font-light font-sans'>
-            Complete your daily sentence completion exercises, <br />
-            reflect every weekend on your week&apos;s responses
-          </p>
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-          <p className='block lg:hidden text-center text-2xl font-light font-sans'>
-            Complete your daily sentence completion exercises, reflect on your week&apos;s responses
+  // Function to toggle the dropdown menu
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  return (
+    <div className="container mx-auto p-6 text-gray-800 bg-white font-custom min-h-screen">
+      {/* Header */}
+      <header className="flex justify-between items-center py-6">
+        <h1 className="text-4xl font-bold">mindstems</h1>
+        
+        {/* Hamburger Menu for Mobile */}
+        <div className="md:hidden">
+          <button
+            onClick={toggleMenu}
+            type="button"
+            className="text-gray-600 hover:text-gray-900 focus:outline-none focus:text-gray-900"
+            aria-label="Toggle navigation menu"
+            aria-expanded={isMenuOpen}
+          >
+            {/* Hamburger Icon */}
+            <svg
+              className="h-6 w-6 fill-current"
+              viewBox="0 0 24 24"
+            >
+              {isMenuOpen ? (
+                // Close Icon
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                // Hamburger Icon
+                <path
+                  fillRule="evenodd"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="hidden md:flex space-x-6">
+          <Link href="/features" className="text-gray-600 hover:text-gray-900">
+            Features
+          </Link>
+          <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
+            Pricing
+          </Link>
+          <Link href="/contact" className="text-gray-600 hover:text-gray-900">
+            Contact
+          </Link>
+        </nav>
+      </header>
+
+      {/* Dropdown Menu for Mobile */}
+      {isMenuOpen && (
+        <nav className="md:hidden mb-4">
+          <ul className="space-y-2">
+            <li>
+              <Link
+                href="/features"
+                className="block text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMenuOpen(false)} // Close menu on link click
+              >
+                Features
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/pricing"
+                className="block text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/contact"
+                className="block text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-base font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Contact
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      )}
+
+      {/* Hero Section */}
+      <section className="flex flex-col-reverse md:flex-row items-center mt-12">
+        {/* Description Text */}
+        <div className="md:w-1/2 ml-16">
+          <h2 className="text-3xl md:text-4xl font-semibold mb-4">
+            Unlock Your Potential with Daily Reflections
+          </h2>
+          <p className="text-lg text-gray-700 mb-6">
+            Engage in daily sentence completion exercises and reflect on your weekly responses to foster personal growth and self-awareness.
           </p>
-          <p className='hidden md:block text-left text-md font-extralight font-sans mt-8'>
-            Nathaniel Branden&apos;s Sentence Completion Exercise made convenient; <br />
-            your week and sentence stem tracked for you.
-          </p>
-          
-          {/* Shortened Text: Visible on small screens */}
-          <p className='block md:hidden text-left text-md font-extralight font-sans mt-8'>
-            Nathaniel Branden&apos;s Sentence Completion Exercise made convenient.
-          </p>
+          <div className="flex space-x-4">
+            {/* Sign In Button */}
+            <Link
+              href="/auth/signin"
+              className="bg-[#E2471D] text-white px-6 py-3 rounded-full hover:bg-[#C33C1A] transition duration-300"
+              aria-label="Sign in to your account"
+            >
+              Sign In
+            </Link>
+            {/* Create Account Button */}
+            <Link
+              href="/auth/signup"
+              className="bg-gray-200 text-gray-800 px-6 py-3 rounded-full hover:bg-gray-300 transition duration-300"
+              aria-label="Create your free account"
+            >
+              Create Account
+            </Link>
+          </div>
         </div>
         
         {/* Image */}
-        <div className="flex-1 pl-4 lg:pl-36">
+        <div className="md:w-1/4 mb-8 md:mb-0 ml-28">
           <Image 
-            src="/images/pic.png" 
+            src="/images/journal.png" 
             alt="Daily Completion Illustration" 
             width={400} 
             height={300} 
-            className="rounded-lg shadow-xl object-contain w-full md:w-3/4 lg:w-2/3" 
+            className="rounded-xl object-cover w-full" 
           />
         </div>
-      </div>
+      </section>
       
-      {/* Action Buttons */}
-      <div className="pl-4 mt-4 lg:pl-36 flex place-content-center lg:place-content-start gap-4">
-        {/* Sign In Button */}
-        <Link 
-          href="/auth/signin" 
-          className="bg-[#E2471D] text-white font-medium px-6 lg:px-12 py-3 rounded-3xl hover:bg-[#9e2f12] hover:text-gray-100 transition duration-300 focus:outline-none focus:ring-2 focus:ring-[#9e2f12] whitespace-nowrap"
-          aria-label="Sign in to your account"
-        >
-          Sign In
-        </Link>
-        
-        {/* Create Account Button */}
-        <Link 
-          href="/auth/signup" 
-          className="bg-gray-300 text-black font-medium px-4 lg:px-12 py-3 rounded-3xl hover:bg-[#71906e] transition duration-300 focus:outline-none focus:ring-2 focus:ring-[#71906e] whitespace-nowrap"
-          aria-label="Create your free account"
-        >
-          Create your free account
-        </Link>
-      </div>
-
-      <div>
       {/* Informational Blocks */}
-        <div className="mt-28 mr-10 pl-4 lg:pl-36 text-pink-300">
-          {/* Block 1 */}
-          <div 
-            className="bg-[#4A192B] rounded-lg p-6 mb-8 shadow-lg"
-            data-aos="fade-up"
-          >
-            <h2 className="text-3xl font-semibold mb-4 text-white">About Nathaniel Branden</h2>
-            <p className="text-lg font-light">
-              Nathaniel Branden was a prominent psychotherapist and author who focused extensively on the psychology of self-esteem. His work has significantly influenced personal development and self-help strategies worldwide.
-            </p>
-          </div>
-
-          {/* Block 2 */}
-          <div 
-            className="bg-[#4A192B] rounded-lg p-6 mb-8 shadow-lg"
-            data-aos="fade-up"
-            data-aos-delay="200"
-          >
-            <h2 className="text-3xl font-semibold mb-4 text-white">Sentence Completion Exercise</h2>
-            <p className="text-lg font-light">
-              The Sentence Completion Exercise is a powerful tool designed to help individuals explore their subconscious thoughts and feelings. By completing thought-provoking sentences, users gain deeper insights into their motivations, desires, and areas for personal growth.
-            </p>
-          </div>
-
-          {/* Block 3 */}
-          <div 
-            className="bg-[#4A192B] rounded-lg p-6 mb-8 shadow-lg"
-            data-aos="fade-up"
-            data-aos-delay="400"
-          >
-            <h2 className="text-3xl font-semibold mb-4 text-white">How Mindstems Helps You</h2>
-            <p className="text-lg font-light">
-              Mindstems streamlines the Sentence Completion Exercise by providing daily prompts and tracking your responses throughout the week. This structured approach ensures consistency, fosters self-reflection, and facilitates meaningful personal development based on Nathaniel Branden's principles.
-            </p>
-          </div>
+      <section className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Block 1 */}
+        <div className="bg-[#E2471D] rounded-lg p-6 shadow hover:shadow-lg transition duration-300">
+          <h3 className="text-2xl font-semibold mb-3">About Nathaniel Branden</h3>
+          <p className="text-gray-200">
+            A renowned psychotherapist and author, Nathaniel Branden&apos;s work on self-esteem has shaped personal development practices worldwide.
+          </p>
         </div>
-      </div>
+
+        {/* Block 2 */}
+        <div className="bg-gray-100 rounded-lg p-6 shadow hover:shadow-lg transition duration-300">
+          <h3 className="text-2xl font-semibold mb-3">Sentence Completion Exercise</h3>
+          <p className="text-gray-600">
+            Dive deep into your subconscious with our structured sentence completion exercises, designed to reveal your innermost thoughts and feelings.
+          </p>
+        </div>
+
+        {/* Block 3 */}
+        <div className="bg-gray-100 rounded-lg p-6 shadow hover:shadow-lg transition duration-300">
+          <h3 className="text-2xl font-semibold mb-3">How Mindstems Helps You</h3>
+          <p className="text-gray-600">
+            Mindstems provides daily prompts and tracks your responses, ensuring consistency and fostering meaningful personal growth based on proven psychological principles.
+          </p>
+        </div>
+      </section>
+      
+      {/* Footer */}
+      <footer className="mt-24 border-t pt-6 text-center text-gray-500">
+        &copy; {new Date().getFullYear()} Mindstems. All rights reserved.
+      </footer>
     </div>
   );
 }

@@ -1,202 +1,214 @@
-// /pages/daily.js
+// pages/daily.js
 
-import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import axios from 'axios';
+import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 
-export default function DailyCompletion() {
+export default function Daily() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [stems, setStems] = useState([]);
-  const [currentStemIndex, setCurrentStemIndex] = useState(0);
-  const [responseText, setResponseText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState('');
-  const [weekNumber, setWeekNumber] = useState(1);
-  const MAX_RESPONSES = 10;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isWeekend, setIsWeekend] = useState(false);
+  const [currentStemIndex, setCurrentStemIndex] = useState(0); // Tracks current stem
+  const [isSubmitting, setIsSubmitting] = useState(false); // Tracks submission state
 
-  // Redirect unauthenticated users to the sign-in page
   useEffect(() => {
-    if (status === 'loading') return; // Do nothing while loading
-    if (!session) {
-      router.push('/auth/signin');
+    if (status === 'loading') return; // Wait for session
+
+    // Determine if today is weekend
+    const today = new Date();
+    const day = today.getDay(); // 0 = Sunday, 6 = Saturday
+    if (day === 0 || day === 6) {
+      setIsWeekend(true);
+    } else {
+      setIsWeekend(false);
     }
-  }, [status, session, router]);
 
-  // Fetch stems
-  useEffect(() => {
-    const fetchStems = async () => {
-      try {
-        const res = await fetch('/api/stems', {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to fetch stems.');
-        }
-        const data = await res.json();
-        console.log('Fetched stems:', data.stems);
-        console.log('Current week number:', data.weekNumber);
-        setStems(data.stems);
-        setWeekNumber(data.weekNumber);
-      } catch (error) {
-        console.error('Error fetching stems:', error);
-        setMessage(error.message);
+    fetchStems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const fetchStems = async () => {
+    try {
+      if (isWeekend) {
+        const res = await axios.get('/api/getAllResponses');
+        setStems(res.data.stemsWithResponses);
+      } else {
+        const res = await axios.get('/api/stems');
+        setStems(res.data.stems);
       }
-    };
-
-    if (session) {
-      fetchStems();
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching stems:', err);
+      setError(err.response?.data?.error || 'Error fetching stems.');
+      setLoading(false);
     }
-  }, [session]);
+  };
 
-  // Log session data
-  useEffect(() => {
-    console.log('Session data on the client:', session);
-  }, [session]);
-
-  if (status === 'loading' || !session) {
-    return <p>Loading...</p>;
-  }
-
-  if (stems.length === 0) {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Daily Sentence Completion</h1>
-        <p>No exercises available for this week. Please check back later!</p>
-      </div>
-    );
-  }
-
-  const currentStem = stems[currentStemIndex];
-
-  // Get existing responses for the current stem
-  const existingResponses = currentStem.responses;
-
-  // Check if user has reached max responses for this stem
-  const hasReachedMaxResponses = existingResponses.length >= MAX_RESPONSES;
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (stemId, responseText, resetForm, setResponseMessage, setResponseError) => {
     if (!responseText.trim()) {
-      setMessage('Please enter your response.');
+      setResponseError('Response cannot be empty.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/responses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Include credentials to send cookies
-        body: JSON.stringify({
-          responseText,
-          sentenceStemId: currentStem.id,
-        }),
+      const res = await axios.post('/api/responses', {
+        sentenceStemId: stemId,
+        responseText: responseText.trim(),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to save response.');
+      setResponseMessage(res.data.message);
+      setResponseError('');
+      resetForm();
+
+      // Refresh stems to update response counts
+      await fetchStems();
+
+      // Check if current stem has reached the limit
+      const updatedStem = stems.find((stem) => stem.id === stemId);
+      if (updatedStem && updatedStem.responsesToday + 1 >= 10) {
+        // Move to next stem
+        setCurrentStemIndex((prevIndex) => prevIndex + 1);
       }
-
-      setResponseText('');
-      setMessage('Response submitted successfully!');
-      console.log('Response submitted successfully.');
-
-      // Refresh stems to include the new response
-      const updatedStemsRes = await fetch('/api/stems', {
-        credentials: 'include',
-      });
-      const updatedStemsData = await updatedStemsRes.json();
-      setStems(updatedStemsData.stems);
-      setWeekNumber(updatedStemsData.weekNumber);
-
-      // Update existing responses after submission
-      const updatedCurrentStem = updatedStemsData.stems[currentStemIndex];
-      const updatedResponsesCount = updatedCurrentStem.responses.length;
-
-      if (updatedResponsesCount >= MAX_RESPONSES) {
-        setMessage(`You have reached the maximum of ${MAX_RESPONSES} responses for this stem.`);
-      }
-    } catch (error) {
-      console.error('Error submitting response:', error);
-      setMessage(error.message);
+    } catch (err) {
+      console.error('Error submitting response:', err);
+      setResponseError(err.response?.data?.error || 'Error submitting response.');
+      setResponseMessage('');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleNextStem = () => {
-    if (currentStemIndex < stems.length - 1) {
-      setCurrentStemIndex(currentStemIndex + 1);
-      setResponseText('');
-      setMessage('');
-    } else {
-      setMessage('You have completed all stems for this week. Well done!');
-    }
+  const handleResetDay = () => {
+    setCurrentStemIndex(0);
+    fetchStems();
   };
 
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Daily Sentence Completion - Week {weekNumber}</h1>
+  if (status === 'loading' || loading) return <p className="text-center mt-8">Loading...</p>;
+  if (error) return <p className="text-center mt-8 text-red-500">{error}</p>;
+  if (!session) return <p className="text-center mt-8">Please sign in to access this page.</p>;
 
-      {/* Current Stem */}
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Stem {currentStem.order}:</h2>
-        <p className="font-semibold">{currentStem.text}</p>
-      </div>
-
-      {/* Existing Responses */}
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Your Responses ({existingResponses.length}/{MAX_RESPONSES}):</h3>
-        <ul className="list-disc ml-6">
-          {existingResponses.map((resp) => (
-            <li key={resp.id} className="mb-2">
-              {resp.responseText}
-            </li>
+  if (isWeekend) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6 text-center">Weekend Reflection</h1>
+        <div className="space-y-8">
+          {stems.map((stem) => (
+            <div key={stem.id} className="border p-4 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-2">Stem {stem.order}: {stem.text}</h2>
+              <div>
+                <h3 className="text-lg font-medium mb-2">Your Responses:</h3>
+                {stem.responsesWithDates.length > 0 ? (
+                  <ul className="list-disc list-inside">
+                    {stem.responsesWithDates.map((response) => (
+                      <li key={response.id}>
+                        <strong>{new Date(response.createdAt).toLocaleDateString()}:</strong> {response.responseText}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600">No responses submitted this week.</p>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
+      </div>
+    );
+  }
+
+  // For weekdays: show one stem at a time
+  const currentStem = stems[currentStemIndex];
+
+  if (!currentStem) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6 text-center">Daily Sentence Completion</h1>
+        <p className="text-center text-gray-700">You have completed all stems for today. Come back tomorrow for new prompts!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center">Daily Sentence Completion</h1>
+
+      <div className="border p-4 rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-2">Stem {currentStem.order}: {currentStem.text}</h2>
+        <p className="mb-4">Responses Today: {currentStem.responsesToday} / 10</p>
+
+        {currentStem.responsesToday < 10 ? (
+          <ResponseForm
+            stemId={currentStem.id}
+            handleSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        ) : (
+          <p className="text-red-500 font-semibold">You have reached the maximum number of responses for this stem today.</p>
+        )}
       </div>
 
-      {/* New Response Form */}
-      {!hasReachedMaxResponses && (
-        <div className="mb-4">
-          <textarea
-            className="w-full p-2 border rounded mt-2"
-            value={responseText}
-            onChange={(e) => setResponseText(e.target.value)}
-            rows="4"
-            placeholder="Enter your response here..."
-          />
-        </div>
-      )}
-
-      {/* Submit Button */}
-      {!hasReachedMaxResponses && (
+      {/* Navigation Buttons */}
+      <div className="flex justify-between mt-6">
         <button
-          className={`bg-blue-500 text-white px-4 py-2 rounded ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-          onClick={handleSubmit}
-          disabled={isSubmitting}
+          onClick={() => setCurrentStemIndex((prev) => Math.max(prev - 1, 0))}
+          disabled={currentStemIndex === 0}
+          className={`px-4 py-2 bg-gray-300 text-gray-700 rounded ${currentStemIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-400'}`}
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Response'}
+          Previous Stem
         </button>
-      )}
-
-      {/* Message */}
-      {message && <p className="mt-4 text-red-500">{message}</p>}
-
-      {/* Next Stem Button */}
-      {hasReachedMaxResponses && (
         <button
-          className="bg-green-500 text-white px-4 py-2 rounded mt-4"
-          onClick={handleNextStem}
+          onClick={() => setCurrentStemIndex((prev) => Math.min(prev + 1, stems.length - 1))}
+          disabled={currentStemIndex === stems.length - 1}
+          className={`px-4 py-2 bg-gray-300 text-gray-700 rounded ${currentStemIndex === stems.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-400'}`}
         >
           Next Stem
         </button>
-      )}
+      </div>
     </div>
+  );
+}
+
+// ResponseForm Component
+function ResponseForm({ stemId, handleSubmit, isSubmitting }) {
+  const [responseText, setResponseText] = useState('');
+  const [responseMessage, setResponseMessage] = useState('');
+  const [responseError, setResponseError] = useState('');
+
+  const resetForm = () => {
+    setResponseText('');
+    setResponseMessage('');
+    setResponseError('');
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault(); // Prevent page reload
+    handleSubmit(stemId, responseText, resetForm, setResponseMessage, setResponseError);
+  };
+
+  return (
+    <form onSubmit={onSubmit}>
+      <textarea
+        value={responseText}
+        onChange={(e) => setResponseText(e.target.value)}
+        placeholder="Enter your response here..."
+        className="w-full p-2 border rounded mb-2"
+        rows={3}
+        required
+      />
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className={`px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition duration-300 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        {isSubmitting ? 'Submitting...' : 'Submit'}
+      </button>
+      {responseMessage && <p className="text-green-500 mt-2">{responseMessage}</p>}
+      {responseError && <p className="text-red-500 mt-2">{responseError}</p>}
+    </form>
   );
 }

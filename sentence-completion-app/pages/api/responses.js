@@ -4,7 +4,7 @@ import prisma from '../../prisma/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 
-const MAX_RESPONSES_PER_STEM = 10;
+const MAX_RESPONSES_PER_STEM_PER_DAY = 10;
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -34,24 +34,35 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid sentence stem ID.' });
       }
 
-      // Check the current number of responses for this stem by the user
-      const currentResponseCount = await prisma.response.count({
+      // Define the start and end of today
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      // Count responses submitted today for this stem by the user
+      const responseCount = await prisma.response.count({
         where: {
           userId: userId,
           sentenceStemId: sentenceStemId,
+          createdAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
         },
       });
 
-      if (currentResponseCount >= MAX_RESPONSES_PER_STEM) {
-        return res.status(400).json({ error: `You have reached the maximum of ${MAX_RESPONSES_PER_STEM} responses for this stem.` });
+      if (responseCount >= MAX_RESPONSES_PER_STEM_PER_DAY) {
+        return res.status(403).json({ error: `You have reached the maximum of ${MAX_RESPONSES_PER_STEM_PER_DAY} responses for this stem today.` });
       }
 
       // Create the response
       await prisma.response.create({
         data: {
           responseText,
-          userId,
-          sentenceStemId,
+          userId: userId,
+          sentenceStemId: sentenceStemId,
         },
       });
 
