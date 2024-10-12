@@ -1,56 +1,77 @@
+// /pages/completion/[week]/reflection.js
+
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useSession, signIn } from 'next-auth/react';
 import axios from 'axios';
 
-export default function ReflectionPage({ week }) {
-  const [stems, setStems] = useState([]);
+export default function ReflectionPage() {
+  const router = useRouter();
+  const { week } = router.query;
+
+  const [responsesByDay, setResponsesByDay] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchReflection = async () => {
-    try {
-      const res = await axios.get(`/api/getAllResponses?week=${week}`);
-      setStems(res.data.stemsWithResponses || []);
-      setLoading(false);
-    } catch (err) {
-      console.error('Error fetching stems:', err);
-      setError(err.response?.data?.error || 'Error fetching stems.');
-      setLoading(false);
-    }
-  };
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    fetchReflection();
-  }, [week]);
+    if (status === 'loading') return; // Wait for session to load
+    if (!session) {
+      signIn();
+      return;
+    }
+
+    if (!week) return;
+
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`/api/reflection?week=${week}`);
+        console.log('Fetched reflection data:', res.data);
+        setResponsesByDay(res.data.responsesByDay);
+      } catch (err) {
+        console.error('Error fetching reflection data:', err.response?.data || err.message);
+        setError(`Error fetching reflection data: ${err.response?.data?.error || err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [week, session, status]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
+  // Prepare to render responses grouped by day
+  const sortedDates = Object.keys(responsesByDay).sort();
+
   return (
-    <div>
-      <h1>Reflection for Week {week}</h1>
-      <div>
-        {stems.length > 0 ? (
-          stems.map((stem) => (
-            <div key={stem.id}>
-              <h2>{stem.text}</h2>
-              <h3>Your Responses:</h3>
-              {stem.responsesWithDates.length > 0 ? (
-                <ul>
-                  {stem.responsesWithDates.map((response) => (
-                    <li key={response.id}>
-                      <strong>{new Date(response.createdAt).toLocaleDateString()}:</strong> {response.responseText}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No responses submitted this week.</p>
-              )}
-            </div>
-          ))
-        ) : (
-          <p>No responses available for reflection.</p>
-        )}
-      </div>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center">Week {week} Reflection</h1>
+
+      {sortedDates.length === 0 ? (
+        <p>No responses for this week.</p>
+      ) : (
+        sortedDates.map((date) => (
+          <div key={date} className="mb-6">
+            <h2 className="text-2xl font-semibold mb-2">Date: {formatDate(date)}</h2>
+            {responsesByDay[date].map((response) => (
+              <div key={response.id} className="mb-4">
+                <p className="font-semibold">{response.sentenceStem.text}</p>
+                <p>{response.responseText}</p>
+              </div>
+            ))}
+          </div>
+        ))
+      )}
     </div>
   );
+}
+
+// Helper function to format dates
+function formatDate(dateString) {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const dateObj = new Date(dateString);
+  return dateObj.toLocaleDateString(undefined, options);
 }
