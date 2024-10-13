@@ -43,7 +43,7 @@ export default function ReflectionPage() {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
-  // Prepare to render responses grouped by day
+  // Prepare to render responses grouped by day and stem
   const sortedDates = Object.keys(responsesByDay).sort();
 
   return (
@@ -55,11 +55,16 @@ export default function ReflectionPage() {
       ) : (
         sortedDates.map((date) => (
           <div key={date} className="mb-6">
-            <h2 className="text-2xl font-semibold mb-2">Date: {formatDate(date)}</h2>
-            {responsesByDay[date].map((response) => (
-              <div key={response.id} className="mb-4">
-                <p className="font-semibold">{response.sentenceStem.text}</p>
-                <p>{response.responseText}</p>
+            <h2 className="text-2xl font-semibold mb-4">Date: {formatDate(date)}</h2>
+
+            {Object.entries(responsesByDay[date]).map(([stemText, responses]) => (
+              <div key={stemText} className="mb-4">
+                <p className="font-semibold text-lg mb-2">{stemText}</p>
+                <ul className="list-disc list-inside pl-4">
+                  {responses.map((responseText, index) => (
+                    <li key={index} className="mb-1">{responseText}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>

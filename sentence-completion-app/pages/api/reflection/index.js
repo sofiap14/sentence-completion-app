@@ -38,15 +38,23 @@ export default async function handler(req, res) {
         },
       });
 
-      // Group responses by day
+      // Group responses by date and stem
       const responsesByDay = {};
 
       responses.forEach((response) => {
         const date = response.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+
         if (!responsesByDay[date]) {
-          responsesByDay[date] = [];
+          responsesByDay[date] = {};
         }
-        responsesByDay[date].push(response);
+
+        const stemText = response.sentenceStem.text;
+
+        if (!responsesByDay[date][stemText]) {
+          responsesByDay[date][stemText] = [];
+        }
+
+        responsesByDay[date][stemText].push(response.responseText);
       });
 
       res.status(200).json({ responsesByDay });
