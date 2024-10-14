@@ -74,9 +74,17 @@ export default function ReflectionPage() {
   );
 }
 
-// Helper function to format dates
+// Helper function to format dates dynamically based on user's local time zone
 function formatDate(dateString) {
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const dateObj = new Date(dateString);
+  const [year, month, day] = dateString.split('-').map(Number); 
+  const dateObj = new Date(year, month - 1, day);
+
+  const options = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+
   return dateObj.toLocaleDateString(undefined, options);
 }
